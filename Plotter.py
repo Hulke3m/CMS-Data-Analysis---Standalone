@@ -53,15 +53,18 @@ def display_streamlit_app(merged_data):
 
     battery_modem_counts = filtered_data['Battery Modem'].value_counts()
     fig_battery_modem = px.bar(x=battery_modem_counts.index, y=battery_modem_counts.values, title='Battery Modem Counts', labels={'x':'Status', 'y':'Count'}, color=battery_modem_counts.index, color_discrete_map={'OK': 'green', 'ERROR': 'red'})
-    fig_battery_modem.update_traces(text=battery_modem_counts.values, textposition='outside')
+    fig_battery_modem.update_xaxes(tickangle=180)
+    fig_battery_modem.update_traces(textposition='outside')
 
     signal_strength_counts = filtered_data['Signal Strength'].value_counts()
     fig_signal_strength_counts = px.bar(x=signal_strength_counts.index, y=signal_strength_counts.values, title='Signal Strength Counts', labels={'x':'Status', 'y':'Count'}, color=signal_strength_counts.index, color_discrete_map={'OK': 'green', 'ERROR': 'red'})
-    fig_signal_strength_counts.update_traces(text=signal_strength_counts.values, textposition='outside')
+    fig_signal_strength_counts.update_xaxes(tickangle=180)
+    fig_signal_strength_counts.update_traces(textposition='outside')
     
     analysis_counts = filtered_data['Analysis'].value_counts()
     fig_analysis_counts = px.bar(x=analysis_counts.index, y=analysis_counts.values, title='Analysis Counts', labels={'x':'Status', 'y':'Count'}, color=analysis_counts.index, color_discrete_map={'GOOD': 'green', 'REPLACE': 'red'})
-    fig_analysis_counts.update_traces(text=analysis_counts.values, textposition='outside')
+    fig_analysis_counts.update_xaxes(tickangle=180)
+    fig_analysis_counts.update_traces(textposition='outside')
     
     replace_percentage = merged_data[merged_data['Month'] == selected_month].groupby('L1#')['Analysis'].apply(lambda x: (x == 'REPLACE').mean() * 100)
     replace_percentage = replace_percentage.reset_index()
