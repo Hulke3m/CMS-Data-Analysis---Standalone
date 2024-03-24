@@ -93,12 +93,13 @@ def display_streamlit_app(merged_data):
 def main():
     st.title('CMS Data Analysis')
     merged_data = pd.DataFrame()
-    uploaded_files = st.sidebar.file_uploader("Upload CSV Files", accept_multiple_files=True, key="file_uploader")
+    uploaded_files = st.sidebar.file_uploader("Upload CSV or XLSX Files", accept_multiple_files=True, type=['csv', 'xlsx'], key="file_uploader")
     if uploaded_files:
         merged_data = merge_csv_to_dataframe(uploaded_files)
 
     if not merged_data.empty:
         display_streamlit_app(merged_data)
+
 
 if __name__ == "__main__":
     main()
