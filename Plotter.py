@@ -35,7 +35,8 @@ def display_streamlit_app(merged_data):
         available_months = sorted(merged_data['Month'].unique())
         selected_month = st.selectbox('Select Month', available_months)
 
-    filtered_data = merged_data[(merged_data['L1#'] == selected_id) & (merged_data['Month'] == selected_month)]
+    # Filter data based on selected month
+    filtered_data = merged_data[merged_data['Month'] == selected_month]
 
     # Aggregate battery readings by date and calculate the average
     battery_data = filtered_data.groupby(filtered_data['Last Signal'].dt.date)['Battery'].mean().reset_index()
@@ -51,32 +52,27 @@ def display_streamlit_app(merged_data):
     fig_signal_strength.update_xaxes(title_text='Date')
     fig_signal_strength.update_yaxes(title_text='Average Signal Strength')
 
-    battery_modem_counts = filtered_data['Battery Modem'].value_counts()
-    fig_battery_modem = px.bar(x=battery_modem_counts.index, y=battery_modem_counts.values, title='Battery Modem Counts', labels={'x':'Status', 'y':'Count'}, color=battery_modem_counts.index, color_discrete_map={'OK': 'green', 'ERROR': 'red'})
-    fig_battery_modem.update_xaxes(tickangle=180, tickmode='array', tickfont=dict(size=10))
-    fig_battery_modem.update_traces(text=battery_modem_counts.values, textposition='inside')
+    # Calculate percentage of 'Battery Modem' errors for each ID in the selected month
+    battery_error_percentages = filtered_data.groupby('L1#')['Battery Modem'].apply(lambda x: (x == 'ERROR').mean() * 100).reset_index()
+    battery_error_percentages.columns = ['Device', 'Battery Error Percentage']
 
-
-    signal_strength_counts = filtered_data['Signal Strength'].value_counts()
-    fig_signal_strength_counts = px.bar(x=signal_strength_counts.index, y=signal_strength_counts.values, title='Signal Strength Counts', labels={'x':'Status', 'y':'Count'}, color=signal_strength_counts.index, color_discrete_map={'OK': 'green', 'ERROR': 'red'})
-    fig_signal_strength_counts.update_xaxes(tickangle=180, tickmode='array', tickfont=dict(size=10))
-    fig_signal_strength_counts.update_traces(text=signal_strength_counts.values, textposition='inside')
-
+    # Calculate percentage of 'Signal Strength' errors for each ID in the selected month
+    signal_error_percentages = filtered_data.groupby('L1#')['Signal Strength'].apply(lambda x: (x == 'ERROR').mean() * 100).reset_index()
+    signal_error_percentages.columns = ['Device', 'Signal Error Percentage']
     
-    analysis_counts = filtered_data['Analysis'].value_counts()
-    fig_analysis_counts = px.bar(x=analysis_counts.index, y=analysis_counts.values, title='Analysis Counts', labels={'x':'Status', 'y':'Count'}, color=analysis_counts.index, color_discrete_map={'GOOD': 'green', 'REPLACE': 'red'})
-    fig_analysis_counts.update_xaxes(tickangle=180, tickmode='array', tickfont=dict(size=10))
-    fig_analysis_counts.update_traces(text=analysis_counts.values, textposition='inside')
-
-    replace_percentage = merged_data[merged_data['Month'] == selected_month].groupby('L1#')['Analysis'].apply(lambda x: (x == 'REPLACE').mean() * 100)
-    replace_percentage = replace_percentage.reset_index()
+    # Calculate percentage of devices to replace for each ID in the selected month
+    replace_percentage = filtered_data.groupby('L1#')['Analysis'].apply(lambda x: (x == 'REPLACE').mean() * 100).reset_index()
     replace_percentage.columns = ['Device', 'Percentage of REPLACE']
 
-    # Reset the index to start from 1
-    replace_percentage.index += 1
+    # Merge all calculated percentages into a single DataFrame
+    result_df = pd.merge(replace_percentage, battery_error_percentages, on='Device', how='left')
+    result_df = pd.merge(result_df, signal_error_percentages, on='Device', how='left')
     
-    st.subheader('Devices to Replace')
-    st.write(replace_percentage)
+    # Reset the index to start from 1
+    result_df.index += 1
+    
+    st.subheader(f'Devices to Replace along with Error Percentages for {selected_month}')
+    st.write(result_df)
 
     if st.button('Show DataFrame'):
         st.subheader('Filtered Data')
@@ -87,13 +83,6 @@ def display_streamlit_app(merged_data):
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_battery, use_container_width=True)
     col2.plotly_chart(fig_signal_strength, use_container_width=True)
-
-    # Display bar charts horizontally
-    st.subheader('Bar Charts')
-    col3, col4, col5 = st.columns(3)
-    col3.plotly_chart(fig_battery_modem, use_container_width=True)
-    col4.plotly_chart(fig_signal_strength_counts, use_container_width=True)
-    col5.plotly_chart(fig_analysis_counts, use_container_width=True)
 
 def main():
     st.title('CMS Data Analysis')
@@ -108,6 +97,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-# pd.show_versions(as_json=False)
-
